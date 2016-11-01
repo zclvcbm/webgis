@@ -1,0 +1,161 @@
+﻿
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <!--The viewport meta tag is used to improve the presentation and behavior of the samples 
+      on iOS devices-->
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+    <title>QueryTask with geometry, results as an InfoWindow</title>
+      <style>
+ html, body { height: 97%; width: 98%; margin: 1%; padding: 0; }
+        #rightPane {
+            width:20%;
+        }
+        #legendPane {
+            border:solid #97DCF2 1px;
+        }
+    #HomeButton {
+    position: absolute;
+    top: 95px;
+    left: 20px;
+    z-index: 50;}
+    
+    #toobar
+    {
+    width:50%;
+     height: 97%;
+    }
+     
+       </style>
+    <link rel="stylesheet" href="http://jsapi.thinkgis.cn/dijit/themes/claro/claro.css">
+    <link rel="stylesheet" href="http://jsapi.thinkgis.cn/esri/css/esri.css">
+    
+    <script src="http://jsapi.thinkgis.cn/init.js"></script>
+    <script>
+        dojo.require("esri.map");
+        dojo.require("esri.tasks.query");
+
+        var map, queryTask, query;
+        var symbol, infoTemplate;
+
+        function init() {
+            map = new esri.Map("mapDiv");
+
+            //create and add new layer
+            var layer = new esri.layers.ArcGISDynamicMapServiceLayer("http://172.25.11.216:6080/arcgis/rest/services/xiangtan_image_wgs84_clip2/MapServer");
+            map.addLayer(layer);
+            var boundary = new esri.layers.ArcGISDynamicMapServiceLayer("http://172.25.11.216:6080/arcgis/rest/services/xiangtan_map_wgs84/MapServer");
+            // map.addLayers([basemap,boundary]);
+            map.addLayer(boundary);
+            //Listen for click event on the map, when the user clicks on the map call executeQueryTask function.
+            var point = new esri.layers.ArcGISDynamicMapServiceLayer("http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/MapServer");
+
+            map.addLayer(point);
+            dojo.connect(map, "onClick", executeQueryTask);
+
+
+            //build query task
+            queryTask = new esri.tasks.QueryTask("http://172.25.11.216:6080/arcgis/rest/services/xiangtan_map_wgs84/MapServer/0");
+
+            //Can listen for onComplete event to process results or can use the callback option in the queryTask.execute method.
+            //dojo.connect(queryTask, "onComplete", showResults);
+
+            //build query filter
+            query = new esri.tasks.Query();
+            query.returnGeometry = true;
+            query.outFields = ["FIRST_xingzheng", "FIRST_quhua", "area_code"];
+
+            //create the infoTemplate to be used in the infoWindow.
+            //All ${attributeName} will be substituted with the attribute value for current feature.
+            infoTemplate = new esri.InfoTemplate("${FIRST_xingzheng}", "名称: ${FIRST_xingzheng}<br />code: ${FIRST_quhua}<br />area_code: ${area_code}");
+
+            symbol = new esri.symbol.SimpleFillSymbol(esri.symbol.SimpleFillSymbol.STYLE_SOLID, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_DASHDOT, new dojo.Color([255, 0, 0]), 2), new dojo.Color([255, 255, 0, 0.5]));
+
+        }
+
+        function executeQueryTask(evt) {
+            //onClick event returns the evt point where the user clicked on the map.
+            //This is contains the mapPoint (esri.geometry.point) and the screenPoint (pixel xy where the user clicked).
+            //set query geometry = to evt.mapPoint Geometry
+            query.geometry = evt.mapPoint;
+
+            //Execute task and call showResults on completion
+            queryTask.execute(query, showResults);
+        }
+
+        function showResults(featureSet) {
+            //remove all graphics on the maps graphics layer
+            map.graphics.clear();
+
+            var features = featureSet.features;
+
+            //QueryTask returns a featureSet.  Loop through features in the featureSet and add them to the map.
+            dojo.forEach(features, function (feature) {
+                var graphic = feature;
+                graphic.setSymbol(symbol);
+
+                //Set the infoTemplate.
+                graphic.setInfoTemplate(infoTemplate);
+
+                //Add graphic to the map graphics layer.
+                map.graphics.add(graphic);
+
+            });
+
+            dojo.connect(map.graphics, "onMouseMove", function (evt) {
+                var g = evt.graphic;
+                map.infoWindow.setContent(g.getContent());
+                map.infoWindow.setTitle(g.getTitle());
+                map.infoWindow.show(evt.screenPoint, map.getInfoWindowAnchor(evt.screenPoint));
+            });
+            dojo.connect(map.graphics, "onMouseOut", function () { map.infoWindow.hide(); });
+        }
+
+        dojo.ready(init);
+
+
+      
+    </script>
+  </head>
+  <body class="claro">
+   
+   
+     <div id="content" 
+        data-dojo-type="dijit/layout/BorderContainer" 
+         data-dojo-props="design:'headline', gutters:true" 
+         style="width: 100%; height: 100%; margin:0;"> 
+
+           <div dojoType="dijit.layout.ContentPane" splitter="false" region="top" style="height:40px;background-color:white;overflow:hidden;"> 
+         <img src="img/earth.jpg" style="float:left" />  <p style="font-size:18px;color:black;height:40px">产地安全等级评价与禁产区边界确认分析平台</p>
+         </div> 
+      <div id="rightPane" 
+           data-dojo-type="dijit/layout/ContentPane" 
+           data-dojo-props="region:'right'" >
+
+          <div data-dojo-type="dijit/layout/AccordionContainer">
+              <div data-dojo-type="dijit/layout/ContentPane" id="legendPane"
+                   data-dojo-props="title:'Legend',selected:true">
+                  <div id="legendDiv"></div>
+               </div>
+              <div data-dojo-type="dijit/layout/ContentPane"
+                   data-dojo-props="title:'Pane 2'">
+                  This pane could contain tools or additional content
+
+              </div>
+          </div>
+       </div>
+       <div id="mapDiv"
+              data-dojo-type="dijit/layout/ContentPane"
+              data-dojo-props="region:'center'"
+              style="overflow:hidden;">
+
+       </div>
+     
+        <div id="bookmarks"></div>
+   <div id="HomeButton"></div>
+
+    </div>
+           <div id="myTableNode"></div>
+  </body>
+</html>
