@@ -1,401 +1,558 @@
 ﻿<!DOCTYPE html>
 <html>
 
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<!--The viewport meta tag is used to improve the presentation and behavior of the samples 
-      on iOS devices-->
-		<meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
-		<title>仿重金属系统</title>
-		<style>
-			html,
-			body {
-				height: 97%;
-				width: 98%;
-				margin: 1%;
-				padding: 0;
-			}
-			
-			#rightPane {
-				width: 20%;
-			}
-			
-			#legendPane {
-				border: solid #97DCF2 1px;
-			}
-			
-			#HomeButton {
-				position: absolute;
-				top: 95px;
-				left: 20px;
-				z-index: 50;
-			}
-			
-			#toobar {
-				width: 50%;
-				height: 97%;
-			}
-		</style>
-		<link rel="stylesheet" href="http://jsapi.thinkgis.cn/dijit/themes/claro/claro.css">
-		<link rel="stylesheet" href="http://jsapi.thinkgis.cn/esri/css/esri.css">
-         <script>
-        var dojoConfig = {
-            locale: 'en',
-            isDebug: true,
-         
-            packages: [{
-                "name": "mywidget",
-                "location": location.pathname.replace(/\/[^/]+$/, "") + "/js/mywidget"
-            }]
-        };
-    </script>
-		<script src="http://jsapi.thinkgis.cn/init.js"></script>
-		<script>
-			dojo.require("esri.map");
-			dojo.require("esri.tasks.query");
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<!--The viewport meta tag is used to improve the presentation and behavior of the samples
+  on iOS devices-->
+	<meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
+	<title>仿重金属系统</title>
+	<style>
+		html,
+		body {
+			height: 100%;
+			width: 100%;
+			margin: 0%;
+			padding: 0;
+		}
 
-			var map, queryTask, query;
-			var symbol, infoTemplate;
+		#HomeButton {
+			position: absolute;
+			top: 195px;
+			left: 20px;
+			z-index: 50;
+		}
 
-			function init() {
-				map = new esri.Map("mapDiv");
+		#BasemapToggle {
+			position: absolute;
+			top: 20px;
+			right: 20px;
+			z-index: 50;
+		}
 
-				//create and add new layer
-				var layer = new esri.layers.ArcGISDynamicMapServiceLayer("http://172.25.11.216:6080/arcgis/rest/services/xiangtan_image_wgs84_clip2/MapServer");
-				map.addLayer(layer);
-				var boundary = new esri.layers.ArcGISDynamicMapServiceLayer("http://172.25.11.216:6080/arcgis/rest/services/xiangtan_map_wgs84/MapServer");
-				// map.addLayers([basemap,boundary]);
-				map.addLayer(boundary);
-				//Listen for click event on the map, when the user clicks on the map call executeQueryTask function.
-				var point = new esri.layers.ArcGISDynamicMapServiceLayer("http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/MapServer");
+		.esriLargeSliderVertical {
+			height: 100px;
+		}
 
-				map.addLayer(point);
-				map.on("mouse-move", addPoint);
+		.esriLargeSliderTR {
+			right: 10px;
+			top: 100px;
+		}
+	</style>
+	<link rel="stylesheet" href="http://jsapi.thinkgis.cn/dijit/themes/claro/claro.css">
+	<link rel="stylesheet" href="http://jsapi.thinkgis.cn/esri/css/esri.css">
+	<link rel="stylesheet" href="js/mywidget/widgets/themes/darkangel/darkangel.css" />
+	<link rel="stylesheet" href="js/mywidget/widgets/themes/darkangel/override.css" />
+	<script>
+		var dojoConfig = {
+
+			packages: [{
+				"name": "mywidget",
+				"location": location.pathname.replace(/\/[^/]+$/, "") + "/js/mywidget"
+			}]
+		};
+	</script>
+	<script type="text/javascript" src="script/zDrag.js"></script>
+	<script type="text/javascript" src="script/zDialog.js"></script>
+	<script type="text/javascript" src="script/innerHTML.js"></script>
+	<script src="http://jsapi.thinkgis.cn/init.js"></script>
+	<script>
+		dojo.require("esri.map");
+		dojo.require("esri.tasks.query");
+		dojo.require("esri.dijit.BasemapToggle");
+
+		var map, queryTask, query;
+		var symbol, infoTemplate;
+
+		function init() {
+			map = new esri.Map("mapDiv", {
+
+				sliderPosition: "bottom-left",
+				sliderStyle: "large"
+			});
+			//卫星图切换
+
+			//create and add new layer
+			var layer = new esri.layers.ArcGISDynamicMapServiceLayer("http://172.25.11.216:6080/arcgis/rest/services/xiangtan_image_wgs84_clip2/MapServer", {
+				id: "湘潭影像图"
+			});
+			map.addLayer(layer);
+			var boundary = new esri.layers.ArcGISDynamicMapServiceLayer("http://172.25.11.216:6080/arcgis/rest/services/xiangtan_map_wgs84/MapServer", {
+				id: " xiangtan2.DBO.xingzhengquhua",
+				visible: true
+			});
+			// map.addLayers([basemap,boundary]);
+			map.addLayer(boundary);
+			//Listen for click event on the map, when the user clicks on the map call executeQueryTask function.
+			var point = new esri.layers.ArcGISDynamicMapServiceLayer("http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/MapServer", {
+				id: "采样点"
+			});
+
+			map.addLayer(point);
+			map.on("mouse-move", addPoint);
+
+			function addPoint(evt) {
+				var latitude = evt.mapPoint.getLatitude();
+				var longitude = evt.mapPoint.getLongitude();
+				// map.infoWindow.setTitle("Coordinates");
+				/* map.infoWindow.setContent(
+				 "lat/lon : " + latitude.toFixed(2) + ", " + longitude.toFixed(2) +
+				 "<br>screen x/y : " + evt.screenPoint.x + ", " + evt.screenPoint.y
+				 );*/
+				lat.innerHTML = "X,Y=(" + latitude + ", " + longitude + ")";
+				//  map.infoWindow.show(evt.mapPoint, map.getInfoWindowAnchor(evt.screenPoint));
+			}
+			var lat = document.getElementById("latlong");
+
+			//  dojo.connect(map, "onClick", executeQueryTask);
+			//    map.on("click", executeQueryTask);
+
+			//build query task
+			queryTask = new esri.tasks.QueryTask("http://172.25.11.216:6080/arcgis/rest/services/xiangtan_map_wgs84/MapServer/0");
+
+			//Can listen for onComplete event to process results or can use the callback option in the queryTask.execute method.
+			//dojo.connect(queryTask, "onComplete", showResults);
+
+			//build query filter
+			query = new esri.tasks.Query();
+			query.returnGeometry = true;
+			query.outFields = ["FIRST_xingzheng", "FIRST_quhua", "area_code"];
+
+			//create the infoTemplate to be used in the infoWindow.
+			//All ${attributeName} will be substituted with the attribute value for current feature.
+			infoTemplate = new esri.InfoTemplate("${FIRST_xingzheng}", "名称: ${FIRST_xingzheng}<br />code: ${FIRST_quhua}<br />area_code: ${area_code}");
+
+			symbol = new esri.symbol.SimpleFillSymbol(esri.symbol.SimpleFillSymbol.STYLE_SOLID, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_DASHDOT, new dojo.Color([255, 0, 0]), 2), new dojo.Color([255, 255, 0, 0.5]));
+
+		}
+
+		function executeQueryTask(evt) {
+			//onClick event returns the evt point where the user clicked on the map.
+			//This is contains the mapPoint (esri.geometry.point) and the screenPoint (pixel xy where the user clicked).
+			//set query geometry = to evt.mapPoint Geometry
+			query.geometry = evt.mapPoint;
+
+			//Execute task and call showResults on completion
+			queryTask.execute(query, showResults);
+		}
+
+		function showResults(featureSet) {
+			//remove all graphics on the maps graphics layer
+			map.graphics.clear();
+
+			var features = featureSet.features;
+
+			//QueryTask returns a featureSet.  Loop through features in the featureSet and add them to the map.
+			dojo.forEach(features, function(feature) {
+				var graphic = feature;
+				graphic.setSymbol(symbol);
+
+				//Set the infoTemplate.
+				graphic.setInfoTemplate(infoTemplate);
+
+				//Add graphic to the map graphics layer.
+				map.graphics.add(graphic);
+
+			});
+
+			dojo.connect(map.graphics, "onMouseMove", function(evt) {
+				var g = evt.graphic;
+				map.infoWindow.setContent(g.getContent());
+				map.infoWindow.setTitle(g.getTitle());
+				map.infoWindow.show(evt.screenPoint, map.getInfoWindowAnchor(evt.screenPoint));
+			});
+			dojo.connect(map.graphics, "onMouseOut", function() {
+				map.infoWindow.hide();
+			});
+		}
+
+		dojo.ready(init);
+
+		require([
+			"esri/InfoTemplate",
+			"esri/config",
+			"esri/dijit/HomeButton",
+			"dojo/parser",
+			"dojo/_base/window", "dojo/dom-style", "dojo/topic",
+			"mywidget/widgets/TocWidget", "mywidget/widgets/Menu",
+			"esri/layers/ArcGISDynamicMapServiceLayer",
+			"esri/tasks/FeatureSet",
+			"esri/SpatialReference", "esri/tasks/Geoprocessor",
+			"esri/IdentityManager",
+			"esri/layers/FeatureLayer",
+			"esri/dijit/FeatureTable",
+			"dojo/dom-construct",
+			"dojo/dom",
+
+			"dojo/ready",
+			"dojo/on",
+			"dojo/_base/lang",
+			"dijit/registry",
+			"esri/dijit/OverviewMap", "esri/dijit/Scalebar", "esri/tasks/query", "esri/tasks/QueryTask",
+			"esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleFillSymbol",
+			"esri/geometry/Point", "esri/graphic", "esri/Color", "esri/toolbars/draw",
+			"mywidget/widgets/MenuItem",
+			"mywidget/widgets/WidgetContainer", "mywidget/widgets/MenuFrame",
+			"dojo/domReady!"
+		], function(
+				InfoTemplate, esriConfig, HomeButton, parser, win, domStyle, topic, TocWidget, Menu, ArcGISDynamicMapServiceLayer, FeatureSet, SpatialReference, Geoprocessor,
+				IdentityManager, FeatureLayer, FeatureTable,
+				domConstruct, dom, ready, on, lang,
+				registry, OverviewMap, Scalebar, Query, QueryTask, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol,
+				Point, Graphic, Color, Draw
+		) {
+
+			var temp_str, toolbar, gp, graphic;
+			parser.parse();
+
+			ready(function() {
+				//configure map animation to be faster
+				esriConfig.defaults.map.panDuration = 1; // time in milliseconds, default panDuration: 350
+				esriConfig.defaults.map.panRate = 1; // default panRate: 25
+				esriConfig.defaults.map.zoomDuration = 100; // default zoomDuration: 500
+				esriConfig.defaults.map.zoomRate = 1; // default zoomRate: 25
+
+				map.on("load", initGpServer);
+				//on(dom.byId("paint"), "click", activateTool);
+				on(dom.byId("clear"), "click", clearGraphics);
+				toolbar = new Draw(map);
+				toolbar.on("draw-end", addToMap);
+
+				on(dom.byId("execute"), "click", executeGP);
+				var mapserviceurl = "http://172.25.11.216:6080/arcgis/rest/services/idw/MapServer/jobs";
+				createWidget();
+				createMenu();
+
+				function createWidget() {
+					toc = new TocWidget();
+					toc.setTitle("图层控制器");
+					toc.setMap(map);
+				}
+
+				function createMenu() {
+					var menuFrame = registry.byId('menuFrame');
+					var logoUrl = require.toUrl("mywidget/widgets/assets/images/logo.png");
+					menuFrame.setFrameIcon(logoUrl);
+					menuFrame.setTitle("产地安全等级评价与禁产区边界确认分析平台");
+					//确定性插值 地统计插值 区域化分析
+					var params = {
+						label: "工具",
+						title: "图层控制器",
+						icon: "assets/images/icons/i_globe.png",
+						positionAsPct: 20,
+						visible: true
+					};
+
+					var toolMenu = new Menu(params);
+					toolMenu.addMenuItem({
+						label: "图层控制器",
+						icon: "assets/images/icons/i_highway.png",
+						visible: true,
+						onMenuItemClick: testMenuItemClick
+					});
+
+					menuFrame.addChild(toolMenu);
+					toolMenu.startup();
+					//反距离插值 局部多项式插值 全局多项式插值
+					var params1 = {
+						label: "确定性插值",
+						title: "确定性插值",
+						icon: "assets/images/icons/i_layers.png",
+						positionAsPct: 40,
+						visible: true
+					};
+					var Deterministic_interpolation = new Menu(params1);
+					Deterministic_interpolation.addMenuItem({
+						label: "反距离插值",
+						icon: "assets/images/icons/i_demographics.png",
+						visible: true,
+						onMenuItemClick: activateTool
+					});
+					Deterministic_interpolation.addMenuItem({
+						label: "局部多项式插值",
+						icon: "assets/images/icons/i_demographics.png",
+						visible: true,
+						onMenuItemClick: activateTool
+					});
+					Deterministic_interpolation.addMenuItem({
+						label: "全局多项式插值",
+						icon: "assets/images/icons/i_demographics.png",
+						visible: true,
+						onMenuItemClick: activateTool
+					});
+
+					Deterministic_interpolation.addMenuItem({
+						label: "径向基函数插值",
+						icon: "assets/images/icons/i_demographics.png",
+						visible: true,
+						onMenuItemClick: activateTool
+					});
+					menuFrame.addChild(Deterministic_interpolation);
+					Deterministic_interpolation.startup();
+					var params2 = {
+						label: "地统计插值",
+						title: "地统计插值",
+						icon: "assets/images/icons/i_layers.png",
+						positionAsPct: 60,
+						visible: true
+					};
+					var Ground_statistical_interpolation = new Menu(params2);
+					Ground_statistical_interpolation.addMenuItem({
+						label: "普通克里金",
+						icon: "assets/images/icons/i_demographics.png",
+						visible: true,
+						onMenuItemClick: activateTool
+					});
+					menuFrame.addChild(Ground_statistical_interpolation);
+					Ground_statistical_interpolation.startup();
+					var params3 = {
+						label: "区域化分析",
+						title: "区域化分析",
+						icon: "assets/images/icons/i_layers.png",
+						positionAsPct: 80,
+						visible: true
+					};
+
+					var Regionalization_analysis = new Menu(params3);
+					Regionalization_analysis.addMenuItem({
+						label: "插值到村镇",
+						icon: "assets/images/icons/i_demographics.png",
+						visible: true,
+						onMenuItemClick: activateTool
+					});
+					menuFrame.addChild(Regionalization_analysis);
+					Regionalization_analysis.startup();
+				}
+
+				function testMenuItemClick(evt) {
+					topic.publish("showWidget", toc);
+				}
+
+				function initGpServer(evt) {
+					var dian_url = "http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/MapServer/";
+					var gp_idw_url = "http://172.25.11.216:6080/arcgis/rest/services/idw/GPServer/idw";
+					gp = new Geoprocessor(gp_idw_url);
+
+				}
+
+				function clearGraphics() {
+					map.graphics.clear();
+				}
+
+				function addToMap(evt) {
+					var symbol;
+					toolbar.deactivate();
+					map.showZoomSlider();
+
+					symbol = new SimpleFillSymbol();
+					graphic = new Graphic(evt.geometry, symbol);
+					map.graphics.add(graphic);
+
+				}
+
+				function executeGP() {
+
+					var features = [];
+
+					features.push(graphic);
+
+					var featureSet = new FeatureSet();
+					featureSet.features = features;
+					var ireq_para = getData();
+					var obj = ireq_para["obj"];
+					var distance = ireq_para["dis"];
+					alert("插值对象：" + obj + " 距离参数：" + distance);
+					//设置参数
+					var params = {
+						"Z_value_field": obj,
+						"polygon": featureSet,
+						"Power": distance
+					};
+					gp.setOutSpatialReference({
+						"wkid": 102113
+					});
+
+					gp.submitJob(params, completeCallback, statusCallback);
+
+				}
+
+				function statusCallback(jobInfo) {
+					console.log(jobInfo.jobStatus);
+					console.log(jobInfo.jobId);
+				}
+
+				function completeCallback(jobInfo) {
+					gp.getResultImageLayer(jobInfo.jobId, null, null, function(layer) {
+						layer.setOpacity(0.7);
+						map.addLayers([layer]);
+					});
+					/*var mapurl = mapserviceurl + "/" + jobInfo.jobId;
+					 var ClassifiedLayer = new ArcGISDynamicMapServiceLayer(mapurl, {
+					 "id": "ClassifiedLayer"
+					 });
+					 //add the hotspot layer to the map
+					 map.addLayer(ClassifiedLayer);*/
+
+				}
+
+				function activateTool(data) {
+					//   var tool = this.label.toUpperCase().replace(/ /g, "_");
+					//这里要弹出一个框子
+					switch(data.value) {
+						case "反距离插值":
+							//	alert("执行反距离插值！");
+							break;
+						case 2:
+
+							break;
+						default:
+
+					}
+					var diag = new Dialog();
+					diag.Modal = false;
+					diag.Title = data.value;
+					diag.InnerHtml = htmltxt;
+
+					//点击确定后调用的方法
+					diag.show();
+					document.getElementById("seleimg").onclick = paintRec;
+					document.getElementById("sub").onclick = executeGP;
+
+				}
+
+				function paintRec() {
+					//如果点了选择区域进行圈区域的操作
+					toolbar.activate(Draw["RECTANGLE"]);
+					map.hideZoomSlider();
+				}
+
+				function getPara() {
+					//传入必须参数
+
+				}
+
+				var overviewMapDijit = new OverviewMap({
+					//设置鹰眼控件的地图
+					map: map,
+					attachTo: "bottom-right",
+					//设置是否可见
+					visible: true,
+				});
+				overviewMapDijit.startup();
+				//鹰眼控件放置的位置
+
+				//添加比例尺
+				var scalebar = new Scalebar({
+					map: map,
+					//比例尺单位
+					scalebarUnit: "dual",
+					//放置的位置
+					attachTo: "bottom-left"
+				});
+				//HomeButton
+				var home = new HomeButton({
+					map: map
+				}, "HomeButton");
+				home.startup();
+
+				// Create the feature layer
+				var myFeatureLayer = new FeatureLayer("http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/FeatureServer/0", {
+					mode: FeatureLayer.MODE_ONDEMAND,
+					outFields: ["town", "tu_pb", "tu_cd", "tu_as", "tu_hg"],
+					visible: true,
+					id: "flayer"
+				});
+				myTable = new FeatureTable({
+					"featureLayer": myFeatureLayer,
+					"hiddenFields": ["FID", "C_Seq", "Street"] // field that end-user can show, but is hidden on startup
+				}, 'myTableNode');
+				myTable.startup();
+				map.addLayer(myFeatureLayer);
+				myFeatureLayer.on("click", execute);
+
+				var queryTask1 = new QueryTask("http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/MapServer/0");
+				//  alert("执行到了这条1");
+				var query1 = new Query();
+				//   alert("执行到了这条2");
+				query1.returnGeometry = false;
+				query1.outFields = ["*"];
+
+				//on(dom.byId("execute"), "click", execute);
+
+				//   map.on("click", addPoint);
+
+				function execute(evt) {
+					//   alert("FL被点击");
+					graphicAttributes = evt.graphic.attributes;
+					// relatedQuery.objectIds = ;
+					var temstr = [graphicAttributes.OBJECTID]
+					// query1.text =temstr.toString() ;
+					query1.where = "OBJECTID=" + temstr.toString();
+					//  alert(query1.where);
+
+					var pointContent = queryTask1.execute(query1, showResults);
+					// alert("想传回来的point"+temp_str);
+					map.infoWindow.setTitle("属性");
+					map.infoWindow.setContent(temp_str);
+					map.infoWindow.show(evt.mapPoint, map.getInfoWindowAnchor(evt.screenPoint));
+
+				}
+
+				function showResults(results) {
+					var resultItems = [];
+					var resultCount = results.features.length;
+					for(var i = 0; i < resultCount; i++) {
+						var featureAttributes = results.features[i].attributes;
+						for(var attr in featureAttributes) {
+							resultItems.push("<b>" + attr + ":</b>  " + featureAttributes[attr] + "<br>");
+						}
+						resultItems.push("<br>");
+					}
+					temp_str = resultItems.join("");
+
+					//dom.byId("info").innerHTML = resultItems.join("");
+					// alert(dom.byId("info").innerHTML );
+
+				}
 
 				function addPoint(evt) {
 					var latitude = evt.mapPoint.getLatitude();
 					var longitude = evt.mapPoint.getLongitude();
-					// map.infoWindow.setTitle("Coordinates");
-					/* map.infoWindow.setContent(
-					   "lat/lon : " + latitude.toFixed(2) + ", " + longitude.toFixed(2) + 
-					   "<br>screen x/y : " + evt.screenPoint.x + ", " + evt.screenPoint.y
-					 );*/
-					lat.innerHTML = "X,Y=(" + latitude + ", " + longitude + ")";
-					//  map.infoWindow.show(evt.mapPoint, map.getInfoWindowAnchor(evt.screenPoint));
-				}
-				var lat = document.getElementById("latlong");
-
-				//  dojo.connect(map, "onClick", executeQueryTask);
-				//    map.on("click", executeQueryTask);
-
-				//build query task
-				queryTask = new esri.tasks.QueryTask("http://172.25.11.216:6080/arcgis/rest/services/xiangtan_map_wgs84/MapServer/0");
-
-				//Can listen for onComplete event to process results or can use the callback option in the queryTask.execute method.
-				//dojo.connect(queryTask, "onComplete", showResults);
-
-				//build query filter
-				query = new esri.tasks.Query();
-				query.returnGeometry = true;
-				query.outFields = ["FIRST_xingzheng", "FIRST_quhua", "area_code"];
-
-				//create the infoTemplate to be used in the infoWindow.
-				//All ${attributeName} will be substituted with the attribute value for current feature.
-				infoTemplate = new esri.InfoTemplate("${FIRST_xingzheng}", "名称: ${FIRST_xingzheng}<br />code: ${FIRST_quhua}<br />area_code: ${area_code}");
-
-				symbol = new esri.symbol.SimpleFillSymbol(esri.symbol.SimpleFillSymbol.STYLE_SOLID, new esri.symbol.SimpleLineSymbol(esri.symbol.SimpleLineSymbol.STYLE_DASHDOT, new dojo.Color([255, 0, 0]), 2), new dojo.Color([255, 255, 0, 0.5]));
-
-			}
-
-			function executeQueryTask(evt) {
-				//onClick event returns the evt point where the user clicked on the map.
-				//This is contains the mapPoint (esri.geometry.point) and the screenPoint (pixel xy where the user clicked).
-				//set query geometry = to evt.mapPoint Geometry
-				query.geometry = evt.mapPoint;
-
-				//Execute task and call showResults on completion
-				queryTask.execute(query, showResults);
-			}
-
-			function showResults(featureSet) {
-				//remove all graphics on the maps graphics layer
-				map.graphics.clear();
-
-				var features = featureSet.features;
-
-				//QueryTask returns a featureSet.  Loop through features in the featureSet and add them to the map.
-				dojo.forEach(features, function(feature) {
-					var graphic = feature;
-					graphic.setSymbol(symbol);
-
-					//Set the infoTemplate.
-					graphic.setInfoTemplate(infoTemplate);
-
-					//Add graphic to the map graphics layer.
-					map.graphics.add(graphic);
-
-				});
-
-				dojo.connect(map.graphics, "onMouseMove", function(evt) {
-					var g = evt.graphic;
-					map.infoWindow.setContent(g.getContent());
-					map.infoWindow.setTitle(g.getTitle());
-					map.infoWindow.show(evt.screenPoint, map.getInfoWindowAnchor(evt.screenPoint));
-				});
-				dojo.connect(map.graphics, "onMouseOut", function() {
-					map.infoWindow.hide();
-				});
-			}
-
-			dojo.ready(init);
-
-			require([
-            "dojo/_base/window", "dojo/dom-style", "dojo/topic",
-               "mywidget/widgets/TocWidget", "mywidget/widgets/Menu", "mywidget/widgets/MenuItem",
-            "mywidget/widgets/WidgetContainer", "mywidget/widgets/MenuFrame",
-				"esri/layers/ArcGISDynamicMapServiceLayer",
-				"esri/tasks/FeatureSet",
-				"esri/SpatialReference", "esri/tasks/Geoprocessor",
-				"esri/IdentityManager",
-				"esri/layers/FeatureLayer",
-				"esri/dijit/FeatureTable",
-				"dojo/dom-construct",
-				"dojo/dom",
-				"dojo/parser",
-				"dojo/ready",
-				"dojo/on",
-				"dojo/_base/lang",
-				"dijit/registry",
-				"esri/dijit/OverviewMap", "esri/dijit/Scalebar", "esri/tasks/query", "esri/tasks/QueryTask",
-				"esri/symbols/SimpleMarkerSymbol", "esri/symbols/SimpleLineSymbol", "esri/symbols/SimpleFillSymbol",
-				"esri/geometry/Point", "esri/graphic", "esri/Color", "esri/toolbars/draw",
-
-				"dojo/domReady!"
-			], function(win, domStyle, topic,TocWidget, Menu,ArcGISDynamicMapServiceLayer, FeatureSet, SpatialReference, Geoprocessor,
-				IdentityManager, FeatureLayer, FeatureTable,
-				domConstruct, dom, parser, ready, on, lang,
-				registry, OverviewMap, Scalebar, Query, QueryTask, SimpleMarkerSymbol, SimpleLineSymbol, SimpleFillSymbol,
-				Point, Graphic, Color, Draw
-			) {
-
-				var temp_str, toolbar, gp,graphic;
-				parser.parse();
-
-				ready(function() {
-					map.on("load", initGpServer);
-					on(dom.byId("paint"), "click", activateTool);
-                    on(dom.byId("clear"), "click", clearGraphics);
-					toolbar = new Draw(map);
-					toolbar.on("draw-end", addToMap);
-
-                    on(dom.byId("execute"), "click", executeGP);
-					var mapserviceurl = "http://172.25.11.216:6080/arcgis/rest/services/idw/MapServer/jobs";
-
-					function initGpServer(evt) {
-						var dian_url = "http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/MapServer/";
-						var gp_idw_url = "http://172.25.11.216:6080/arcgis/rest/services/idw/GPServer/idw";
-						gp = new Geoprocessor(gp_idw_url);
-
-					}
-                    function clearGraphics()
-                    {
-                    map.graphics.clear();
-                    }
-					function addToMap(evt) {
-                       var symbol;
-						toolbar.deactivate();
-						map.showZoomSlider();
-
-						symbol = new SimpleFillSymbol();
-					    graphic = new Graphic(evt.geometry, symbol);
-						map.graphics.add(graphic);
-					 
-
-					}
-
-                    function executeGP() {
-                  
-						
-						var features = [];
-                       
-						features.push(graphic);
-                          
-						var featureSet = new FeatureSet();
-						featureSet.features = features;
-
-						//设置参数
-						var params = {
-							"Z_value_field": "tu_pb",
-							"polygon": featureSet,
-							"Power": 2
-						};
-						gp.setOutSpatialReference({
-							"wkid": 102113
-						});
-
-						gp.submitJob(params, completeCallback, statusCallback);
-
-					}
-
-					function statusCallback(jobInfo) {
-						console.log(jobInfo.jobStatus);
-						console.log(jobInfo.jobId);
-					}
-
-					function completeCallback(jobInfo) {
-						gp.getResultImageLayer(jobInfo.jobId, null, null, function(layer) {
-							layer.setOpacity(0.7);
-							map.addLayers([layer]);
-						});
-						/*var mapurl = mapserviceurl + "/" + jobInfo.jobId;
-						var ClassifiedLayer = new ArcGISDynamicMapServiceLayer(mapurl, {
-							"id": "ClassifiedLayer"
-						});
-						//add the hotspot layer to the map  
-						map.addLayer(ClassifiedLayer);*/
-
-					}
-
-					function activateTool() {
-						//   var tool = this.label.toUpperCase().replace(/ /g, "_");
-						toolbar.activate(Draw["RECTANGLE"]);
-						map.hideZoomSlider();
-					}
-
-					var overviewMapDijit = new OverviewMap({
-						//设置鹰眼控件的地图
-						map: map,
-						attachTo: "bottom-right",
-						//设置是否可见
-						visible: true,
-					});
-					overviewMapDijit.startup();
-					//鹰眼控件放置的位置
-
-					//添加比例尺   
-					var scalebar = new Scalebar({
-						map: map,
-						//比例尺单位
-						scalebarUnit: "dual",
-						//放置的位置
-						attachTo: "bottom-left"
-					});
-					// Create the feature layer
-					var myFeatureLayer = new FeatureLayer("http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/FeatureServer/0", {
-						mode: FeatureLayer.MODE_ONDEMAND,
-						outFields: ["town", "tu_pb", "tu_cd", "tu_as", "tu_hg"],
-						visible: true,
-						id: "fLayer"
-					});
-					myTable = new FeatureTable({
-						"featureLayer": myFeatureLayer,
-						"hiddenFields": ["FID", "C_Seq", "Street"] // field that end-user can show, but is hidden on startup
-					}, 'myTableNode');
-					myTable.startup();
-					map.addLayer(myFeatureLayer);
-					myFeatureLayer.on("click", execute);
-
-					var queryTask1 = new QueryTask("http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/MapServer/0");
-					//  alert("执行到了这条1");
-					var query1 = new Query();
-					//   alert("执行到了这条2");
-					query1.returnGeometry = false;
-					query1.outFields = ["*"];
-
-					//on(dom.byId("execute"), "click", execute);
-
-					//   map.on("click", addPoint);
-
-					function execute(evt) {
-						//   alert("FL被点击");
-						graphicAttributes = evt.graphic.attributes;
-						// relatedQuery.objectIds = ;
-						var temstr = [graphicAttributes.OBJECTID]
-							// query1.text =temstr.toString() ;
-						query1.where = "OBJECTID=" + temstr.toString();
-						//  alert(query1.where);
-
-						var pointContent = queryTask1.execute(query1, showResults);
-						// alert("想传回来的point"+temp_str);
-						map.infoWindow.setTitle("属性");
-						map.infoWindow.setContent(temp_str);
-						map.infoWindow.show(evt.mapPoint, map.getInfoWindowAnchor(evt.screenPoint));
-
-					}
-
-					function showResults(results) {
-						var resultItems = [];
-						var resultCount = results.features.length;
-						for(var i = 0; i < resultCount; i++) {
-							var featureAttributes = results.features[i].attributes;
-							for(var attr in featureAttributes) {
-								resultItems.push("<b>" + attr + ":</b>  " + featureAttributes[attr] + "<br>");
-							}
-							resultItems.push("<br>");
-						}
-						temp_str = resultItems.join("");
-
-						//dom.byId("info").innerHTML = resultItems.join("");
-						// alert(dom.byId("info").innerHTML );
-
-					}
-
-					function addPoint(evt) {
-						var latitude = evt.mapPoint.getLatitude();
-						var longitude = evt.mapPoint.getLongitude();
-						map.infoWindow.setTitle("Coordinates");
-						map.infoWindow.setContent("lat/lon : " + latitude.toFixed(2) + ", " + longitude.toFixed(2) +
+					map.infoWindow.setTitle("Coordinates");
+					map.infoWindow.setContent("lat/lon : " + latitude.toFixed(2) + ", " + longitude.toFixed(2) +
 							"<br>screen x/y : " + evt.screenPoint.x + ", " + evt.screenPoint.y
-						);
-						map.infoWindow.show(evt.mapPoint, map.getInfoWindowAnchor(evt.screenPoint));
-					}
-
-				});
+					);
+					map.infoWindow.show(evt.mapPoint, map.getInfoWindowAnchor(evt.screenPoint));
+				}
 
 			});
-		</script>
-	</head>
 
-	<body class="claro">
+		});
+	</script>
+</head>
 
-		<div id="content" data-dojo-type="dijit/layout/BorderContainer" data-dojo-props="design:'headline', gutters:true" style="width: 100%; height: 100%; margin:0;">
+<body class="claro">
 
-			<div dojoType="dijit.layout.ContentPane" splitter="false" region="top" style="height:40px;background-color:white;">
-				<img src="img/earth.jpg" style="float:left" />
-				<p style="font-size:18px;color:black;height:40px">产地安全等级评价与禁产区边界确认分析平台 输入查询编号: <input type="text" id="stateName" value="430321-WG-0203-T" />
-					<input id="paint" type="button" value="画图形" />
-                    <input id="execute" type="button" value="提交结果" />
-                    <input id="clear" type="button" value="清除" />
-				</p>
+<!--		<p style="font-size:18px;color:black;height:40px"> 输入查询编号: <input type="text" id="stateName" value="430321-WG-0203-T" /> -->
+<div id="BasemapToggle"></div>
 
-			</div>
-			<div id="rightPane" data-dojo-type="dijit/layout/ContentPane" data-dojo-props="region:'right'">
+<div id="mapDiv" style="overflow:hidden;height:100%">
+	<div id="HomeButton"></div>
 
-				<div data-dojo-type="dijit/layout/AccordionContainer">
-					<div data-dojo-type="dijit/layout/ContentPane" id="legendPane" data-dojo-props="title:'Legend',selected:true">
-						<div id="legendDiv">
+</div>
 
-						</div>
-						<div data-dojo-type="dijit/layout/ContentPane" data-dojo-props="title:'Pane 2'">
-							This pane could contain tools or additional content
-							<button data-dojo-type="dijit/form/Button">克里金差值 </button></div>
-					</div>
-				</div>
-			</div>
-			<div id="mapDiv" data-dojo-type="dijit/layout/ContentPane" data-dojo-props="region:'center'" style="overflow:hidden;">
+<div data-dojo-type="mywidget/widgets/MenuFrame" id='menuFrame' style="top:0px;left: 0px;width:100%"></div>
+<div data-dojo-type="mywidget/widgets/WidgetContainer" id='widgetContainer'></div>
 
-			</div>
+<div id="bookmarks"> </div>
 
-			<div id="bookmarks"> </div>
-			<div id="HomeButton"> </div>
+<input id="paint" type="button" value="画图形" />
+<input id="execute" type="button" value="提交结果" />
+<input id="clear" type="button" value="清除" />
+<div id="legendDiv"> </div>
 
-			<div data-dojo-type="dijit/layout/ContentPane" data-dojo-props="region:'bottom',splitter:true,liveSizing:true" style="height:200px;">
-				<div id="myTableNode"> </div>
-			</div>
-
-		</div>
-		<div id="latlong"></div>
-
-	</body>
+<div id="latlong"></div>
+<div id="myTableNode"></div>
+</body>
 
 </html>
