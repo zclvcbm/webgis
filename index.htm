@@ -4,7 +4,7 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<!--The viewport meta tag is used to improve the presentation and behavior of the samples
-  on iOS devices-->
+on iOS devices-->
 	<meta name="viewport" content="initial-scale=1, maximum-scale=1,user-scalable=no">
 	<title>仿重金属系统</title>
 	<style>
@@ -212,7 +212,7 @@
 				esriConfig.defaults.map.zoomDuration = 100; // default zoomDuration: 500
 				esriConfig.defaults.map.zoomRate = 1; // default zoomRate: 25
 
-				map.on("load", initGpServer);
+				//map.on("load", initGpServer);
 				//on(dom.byId("paint"), "click", activateTool);
 				on(dom.byId("clear"), "click", clearGraphics);
 				toolbar = new Draw(map);
@@ -328,15 +328,36 @@
 					topic.publish("showWidget", toc);
 				}
 
-				function initGpServer(evt) {
-					var dian_url = "http://172.25.11.216:6080/arcgis/rest/services/samples_xt_wgs84/MapServer/";
-					var gp_idw_url = "http://172.25.11.216:6080/arcgis/rest/services/idw/GPServer/idw";
-					gp = new Geoprocessor(gp_idw_url);
+				function clearGraphics() {
+					map.graphics.clear();
+				}
+
+				function activateTool(data) {
+					//   var tool = this.label.toUpperCase().replace(/ /g, "_");
+					//这里要弹出一个框子
+
+					var diag = new Dialog();
+					diag.Modal = false;
+					diag.Title = data.value;
+					diag.InnerHtml = htmltxt;
+					get_Html = selectMethod(data.value);
+					gp = new Geoprocessor(get_Html["gpurl"]);
+
+					//点击确定后调用的方法
+					diag.show();
+					changethirdStyle(get_Html["flag"]);
+					document.getElementById("seleimg").onclick = paintRec;
+					document.getElementById("thirdtxt").innerHTML = get_Html["r_html"];
+					document.getElementById("sub").onclick = function() {
+						executeGP(data.value);
+					}
 
 				}
 
-				function clearGraphics() {
-					map.graphics.clear();
+				function paintRec() {
+					//如果点了选择区域进行圈区域的操作
+					toolbar.activate(Draw["RECTANGLE"]);
+					map.hideZoomSlider();
 				}
 
 				function addToMap(evt) {
@@ -350,30 +371,115 @@
 
 				}
 
-				function executeGP() {
+				function selectMethod(data) {
+					var r_html, flag = 0;
+					switch(data) {
+						case "反距离插值":
+							gpurl = "http://172.25.11.216:6080/arcgis/rest/services/idw/GPServer/idw";
+							r_html = "距离指数";
+							flag = 1;
+							break;
+						case "局部多项式插值":
+							gpurl = "http://172.25.11.216:6080/arcgis/rest/services/LPI/GPServer/wangchao_LPI";
+							console.log("局部多项式插值" + gpurl);
+
+							break;
+						case "全局多项式插值":
+							gpurl = "http://172.25.11.216:6080/arcgis/rest/services/GPI/GPServer/wangchao_GPI";
+							console.log("全局多项式插值" + gpurl);
+
+							break;
+						case "径向基函数插值":
+							gpurl = "http://172.25.11.216:6080/arcgis/rest/services/RBF/GPServer/wangchao_RBF";
+							console.log("径向基函数插值" + gpurl);
+
+							break;
+						case "普通克里金":
+							gpurl = "http://172.25.11.216:6080/arcgis/rest/services/Kring/GPServer/Kring";
+							console.log("普通克里金" + gpurl);
+							r_html = "变异函数";
+							flag = 2;
+							break;
+					}
+					var ret_para = {
+						"gpurl": gpurl,
+						"r_html": r_html,
+						"flag": flag
+					};
+					return ret_para;
+				}
+
+				function getGPparamsJson(rec_data) {
 
 					var features = [];
-
 					features.push(graphic);
-
 					var featureSet = new FeatureSet();
 					featureSet.features = features;
+					//获取数据，函数在innerHTML.js中
 					var ireq_para = getData();
 					var obj = ireq_para["obj"];
 					var distance = ireq_para["dis"];
-					alert("插值对象：" + obj + " 距离参数：" + distance);
-					//设置参数
-					var params = {
-						"Z_value_field": obj,
-						"polygon": featureSet,
-						"Power": distance
-					};
+					console.log("插值对象：" + obj + " 距离参数：" + distance);
+					switch(rec_data) {
+						case "反距离插值":
+							ret_GPparams = {
+								"Z_value_field": obj,
+								"polygon": featureSet,
+								"Power": distance
+							};
+							console.log("反距离插值" + ret_GPparams);
+							break;
+						case "局部多项式插值":
+							ret_GPparams = {
+								"Z_value_field": obj,
+								"polygon": featureSet
+							};
+							console.log("局部多项式插值" + ret_GPparams);
+							break;
+						case "全局多项式插值":
+							ret_GPparams = {
+								"Z_value_field": obj,
+								"polygon": featureSet
+
+							};
+							console.log("全局多项式插值" + ret_GPparams);
+							break;
+						case "径向基函数插值":
+							ret_GPparams = {
+								"Z_value_field": obj,
+								"polygon": featureSet
+							};
+							console.log("径向基函数插值" + ret_GPparams);
+							r_html = "距离指数";
+							break;
+						case "普通克里金":
+							ret_GPparams = {
+								"Z_value_field": obj,
+								"polygon": featureSet,
+								"Semivariogram_properties": distance
+							};
+							console.log("普通克里金" + ret_GPparams);
+							break;
+					}
+
+					return ret_GPparams;
+				}
+
+				function executeGP(gpmethod) {
+
+					var features = [];
+					features.push(graphic);
+					console.log("实际执行的GP" + gpurl);
+					var params = getGPparamsJson(gpmethod);
+					gp.setOutSpatialReference({
+						"wkid": 102113
+					});
+					console.log(eval(params));
 					gp.setOutSpatialReference({
 						"wkid": 102113
 					});
 
 					gp.submitJob(params, completeCallback, statusCallback);
-
 				}
 
 				function statusCallback(jobInfo) {
@@ -392,43 +498,16 @@
 					 });
 					 //add the hotspot layer to the map
 					 map.addLayer(ClassifiedLayer);*/
-
 				}
 
-				function activateTool(data) {
-					//   var tool = this.label.toUpperCase().replace(/ /g, "_");
-					//这里要弹出一个框子
-					switch(data.value) {
-						case "反距离插值":
-							//	alert("执行反距离插值！");
-							break;
-						case 2:
-
-							break;
-						default:
-
+				function changethirdStyle(flag) {
+					if(flag) {
+						document.getElementById("distance").style.display = "block";
+						document.getElementById("thirdtxt").style.display = "block";
 					}
-					var diag = new Dialog();
-					diag.Modal = false;
-					diag.Title = data.value;
-					diag.InnerHtml = htmltxt;
-
-					//点击确定后调用的方法
-					diag.show();
-					document.getElementById("seleimg").onclick = paintRec;
-					document.getElementById("sub").onclick = executeGP;
-
-				}
-
-				function paintRec() {
-					//如果点了选择区域进行圈区域的操作
-					toolbar.activate(Draw["RECTANGLE"]);
-					map.hideZoomSlider();
-				}
-
-				function getPara() {
-					//传入必须参数
-
+					if(flag == 2) {
+						document.getElementById("distance").value = "Spherical 225.823841";
+					}
 				}
 
 				var overviewMapDijit = new OverviewMap({
